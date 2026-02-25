@@ -1,12 +1,6 @@
-# ── Core ML ──────────────────────────────────────────
-diffusers>=0.25.0
-transformers>=4.36.0
-accelerate>=0.25.0
-torch>=2.1.0
-safetensors>=0.4.0
-
 # ── Web Framework ────────────────────────────────────
 flask>=3.0.0
 
-# ── Optional Performance ─────────────────────────────
-# xformers              # Uncomment if you have a compatible NVIDIA GPU
+# ── Hugging Face Inference API ───────────────────────
+requests>=2.31.0
+Pillow>=10.0.0

@@ -1,102 +1,140 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI Image Generator</title>
-  <link rel="stylesheet" href="/static/styles.css" />
-  <!-- Google Fonts – Inter for that clean SaaS feel -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-</head>
-<body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Image Generator</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+    <!-- Google Fonts – Inter for that clean SaaS feel -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <!-- Animated gradient orbs in the background -->
+    <div class="bg-orb bg-orb--1"></div>
+    <div class="bg-orb bg-orb--2"></div>
+    <div class="bg-orb bg-orb--3"></div>
 
-  <!-- Animated gradient orbs in the background -->
-  <div class="bg-orb bg-orb--1"></div>
-  <div class="bg-orb bg-orb--2"></div>
-  <div class="bg-orb bg-orb--3"></div>
+    <main class="container">
+      <!-- ── Header ─────────────────────────────────── -->
+      <header class="header">
+        <div class="logo">
+          <svg
+            class="logo-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+          </svg>
+          <span>AI Image Generator</span>
+        </div>
+        <p class="tagline">
+          Transform words into stunning visuals with Stable Diffusion
+        </p>
+      </header>
 
-  <main class="container">
+      <!-- ── Prompt Card ────────────────────────────── -->
+      <section class="card prompt-card">
+        <label for="prompt" class="input-label">Describe your image</label>
+        <textarea
+          id="prompt"
+          class="prompt-input"
+          rows="3"
+          placeholder="A futuristic city floating in the clouds at sunset, ultra detailed..."
+          maxlength="500"
+        ></textarea>
 
-    <!-- ── Header ─────────────────────────────────── -->
-    <header class="header">
-      <div class="logo">
-        <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-        </svg>
-        <span>AI Image Generator</span>
-      </div>
-      <p class="tagline">Transform words into stunning visuals with Stable Diffusion</p>
-    </header>
+        <div class="controls">
+          <div class="style-select-wrapper">
+            <label for="style" class="select-label">Style Preset</label>
+            <select id="style" class="style-select">
+              <option value="none">None</option>
+              <option value="cinematic">🎬 Cinematic</option>
+              <option value="anime">🌸 Anime</option>
+              <option value="realistic">📷 Realistic</option>
+              <option value="cyberpunk">🌃 Cyberpunk</option>
+            </select>
+          </div>
 
-    <!-- ── Prompt Card ────────────────────────────── -->
-    <section class="card prompt-card">
-      <label for="prompt" class="input-label">Describe your image</label>
-      <textarea
-        id="prompt"
-        class="prompt-input"
-        rows="3"
-        placeholder="A futuristic city floating in the clouds at sunset, ultra detailed..."
-        maxlength="500"
-      ></textarea>
-
-      <div class="controls">
-        <div class="style-select-wrapper">
-          <label for="style" class="select-label">Style Preset</label>
-          <select id="style" class="style-select">
-            <option value="none">None</option>
-            <option value="cinematic">🎬 Cinematic</option>
-            <option value="anime">🌸 Anime</option>
-            <option value="realistic">📷 Realistic</option>
-            <option value="cyberpunk">🌃 Cyberpunk</option>
-          </select>
+          <button
+            id="generate-btn"
+            class="btn-generate"
+            onclick="generateImage()"
+          >
+            <span class="btn-text">Generate</span>
+            <span class="btn-loader hidden">
+              <svg class="spinner" viewBox="0 0 24 24">
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  stroke-width="3"
+                  fill="none"
+                  stroke-dasharray="60 30"
+                />
+              </svg>
+              Generating…
+            </span>
+          </button>
         </div>
 
-        <button id="generate-btn" class="btn-generate" onclick="generateImage()">
-          <span class="btn-text">Generate</span>
-          <span class="btn-loader hidden">
-            <svg class="spinner" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"
-                      fill="none" stroke-dasharray="60 30" />
-            </svg>
-            Generating…
-          </span>
-        </button>
-      </div>
+        <!-- Error message -->
+        <p id="error-msg" class="error-msg hidden"></p>
+      </section>
 
-      <!-- Error message -->
-      <p id="error-msg" class="error-msg hidden"></p>
-    </section>
+      <!-- ── Result Card ────────────────────────────── -->
+      <section id="result-card" class="card result-card hidden">
+        <div class="result-header">
+          <h2 class="result-title">Your Creation</h2>
+          <span id="gen-time" class="gen-time"></span>
+        </div>
+        <div class="image-wrapper">
+          <img
+            id="result-image"
+            class="result-image"
+            src=""
+            alt="Generated image"
+          />
+        </div>
+        <a
+          id="download-btn"
+          class="btn-download"
+          href="#"
+          download="ai-generated.png"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="dl-icon"
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          Download Image
+        </a>
+      </section>
 
-    <!-- ── Result Card ────────────────────────────── -->
-    <section id="result-card" class="card result-card hidden">
-      <div class="result-header">
-        <h2 class="result-title">Your Creation</h2>
-        <span id="gen-time" class="gen-time"></span>
-      </div>
-      <div class="image-wrapper">
-        <img id="result-image" class="result-image" src="" alt="Generated image" />
-      </div>
-      <a id="download-btn" class="btn-download" href="#" download="ai-generated.png">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dl-icon">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-          <polyline points="7 10 12 15 17 10" />
-          <line x1="12" y1="15" x2="12" y2="3" />
-        </svg>
-        Download Image
-      </a>
-    </section>
+      <!-- ── Footer ─────────────────────────────────── -->
+      <footer class="footer">
+        Powered by <strong>Stable Diffusion</strong> &middot; Built with Flask
+        &amp; 🤗 Hugging Face Inference API
+      </footer>
+    </main>
 
-    <!-- ── Footer ─────────────────────────────────── -->
-    <footer class="footer">
-      Powered by <strong>Stable Diffusion v1.5</strong> &middot; Built with Flask &amp; 🤗 Diffusers
-    </footer>
-
-  </main>
-
-  <script src="/static/script.js"></script>
-</body>
+    <script src="/static/script.js"></script>
+  </body>
 </html>

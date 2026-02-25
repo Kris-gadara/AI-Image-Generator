@@ -1,8 +1,8 @@
 """
 AI Image Generator — Flask Backend
 ===================================
-Uses Hugging Face's Stable Diffusion v1-5 via the 🤗 diffusers library.
-The model is loaded once at startup and reused for every request.
+Uses Hugging Face's Inference API for Stable Diffusion image generation.
+No local GPU or large model download required.
 """
 
 import os
@@ -11,9 +11,11 @@ import time
 import logging
 from pathlib import Path
 
+from io import BytesIO
+
+import requests as http_requests
+from PIL import Image
 from flask import Flask, render_template, request, jsonify, send_from_directory
-import torch
-from diffusers import StableDiffusionPipeline
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -22,13 +24,11 @@ from diffusers import StableDiffusionPipeline
 OUTPUT_DIR = Path(__file__).parent / "generated_images"
 OUTPUT_DIR.mkdir(exist_ok=True)
 
-MODEL_ID = "runwayml/stable-diffusion-v1-5"
+# HF Inference API model
+MODEL_ID = "stabilityai/stable-diffusion-xl-base-1.0"
 
-# Inference defaults
-DEFAULT_STEPS = 30          # Good quality / speed trade-off
-DEFAULT_GUIDANCE = 7.5      # Classifier-free guidance scale
-DEFAULT_WIDTH = 512
-DEFAULT_HEIGHT = 512
+# Optional: set HF_TOKEN env var for higher rate limits
+HF_TOKEN = os.environ.get("HF_TOKEN", None)
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -41,33 +41,17 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Device & Model Setup (runs once at import / startup)
+# HF Inference API setup
 # ---------------------------------------------------------------------------
 
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-DTYPE = torch.float16 if DEVICE == "cuda" else torch.float32
+API_URL = f"https://router.huggingface.co/hf-inference/models/{MODEL_ID}"
+HEADERS = {"Authorization": f"Bearer {HF_TOKEN}"} if HF_TOKEN else {}
 
-log.info("Detected device: %s  |  dtype: %s", DEVICE, DTYPE)
-log.info("Loading model  %s …  (this may take a minute on first run)", MODEL_ID)
-
-pipe = StableDiffusionPipeline.from_pretrained(
-    MODEL_ID,
-    torch_dtype=DTYPE,
-    safety_checker=None,                   # Remove NSFW filter for speed
-    requires_safety_checker=False,
-)
-pipe = pipe.to(DEVICE)
-
-# Performance optimisations
-if DEVICE == "cuda":
-    pipe.enable_attention_slicing()         # Lower VRAM usage
-    try:
-        pipe.enable_xformers_memory_efficient_attention()
-        log.info("xformers memory-efficient attention enabled")
-    except Exception:
-        log.info("xformers not available — using default attention")
-
-log.info("Model loaded and ready on %s ✓", DEVICE)
+log.info("HF Inference API ready  (model: %s)", MODEL_ID)
+if HF_TOKEN:
+    log.info("Using authenticated requests (HF_TOKEN set)")
+else:
+    log.info("Using unauthenticated requests — set HF_TOKEN env var for higher rate limits")
 
 # ---------------------------------------------------------------------------
 # Style Presets — appended to the user prompt
@@ -119,26 +103,21 @@ def generate():
 
     log.info("Generating  ➜  prompt=%r  style=%s", prompt, style_key)
 
-    # --- Inference ------------------------------------------------------------
+    # --- Inference via HF API ------------------------------------------------
     try:
         start = time.time()
 
-        generator = torch.Generator(device=DEVICE)
-        generator.manual_seed(torch.randint(0, 2**32 - 1, (1,)).item())
+        payload = {"inputs": full_prompt}
+        response = http_requests.post(API_URL, headers=HEADERS, json=payload, timeout=120)
 
-        # Use autocast for mixed-precision on GPU
-        with torch.autocast(DEVICE, enabled=(DEVICE == "cuda")):
-            result = pipe(
-                prompt=full_prompt,
-                num_inference_steps=DEFAULT_STEPS,
-                guidance_scale=DEFAULT_GUIDANCE,
-                width=DEFAULT_WIDTH,
-                height=DEFAULT_HEIGHT,
-                generator=generator,
-            )
+        if response.status_code != 200:
+            error_msg = response.json().get("error", response.text) if response.headers.get("content-type", "").startswith("application/json") else response.text
+            log.error("HF API error %s: %s", response.status_code, error_msg)
+            return jsonify({"success": False, "error": f"HF API error: {error_msg}"}), 502
+
+        image = Image.open(BytesIO(response.content))
 
         elapsed = round(time.time() - start, 2)
-        image = result.images[0]
 
         # --- Save to disk -----------------------------------------------------
         filename = f"{uuid.uuid4().hex}.png"

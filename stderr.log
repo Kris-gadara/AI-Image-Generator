@@ -1,0 +1,7 @@
+2026-02-25 12:29:13,299  INFO      Hugging Face Inference Client ready  (model: stabilityai/stable-diffusion-3.5-large)
+2026-02-25 12:29:13,300  INFO      Using unauthenticated requests — set HF_TOKEN env var for higher rate limits
+2026-02-25 12:29:13,327  INFO      [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://10.45.154.85:5000
+2026-02-25 12:29:13,328  INFO      [33mPress CTRL+C to quit[0m
